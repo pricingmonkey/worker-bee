@@ -1,0 +1,54 @@
+{
+  "name": "worker-bee",
+  "version": "1.0.0",
+  "description": "A simple fast job/task queue for WebWorkers",
+  "files": [
+    "lib"
+  ],
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "sideEffects": false,
+  "scripts": {
+    "lint": "eslint --ext .ts src",
+    "build": "tsc",
+    "clean": "rimraf lib dist",
+    "test": "mocha 'test/**/*.spec.ts'",
+    "shipit": "yarn clean && yarn build && yarn lint && yarn test && scripts/publish.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pricingmonkey/worker-bee.git"
+  },
+  "keywords": [
+    "job",
+    "task",
+    "queue",
+    "worker",
+    "web-worker",
+    "browser"
+  ],
+  "license": "BlueOak-1.0.0",
+  "dependencies": {
+    "fastpriorityqueue": "^0.6.1"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.4.3",
+    "@babel/core": "^7.4.3",
+    "@babel/plugin-proposal-class-properties": "^7.4.0",
+    "@babel/plugin-proposal-object-rest-spread": "^7.4.3",
+    "@babel/preset-env": "^7.4.3",
+    "@babel/preset-typescript": "^7.3.3",
+    "@babel/register": "^7.4.0",
+    "@types/mocha": "^5.2.6",
+    "@typescript-eslint/eslint-plugin": "^1.7.0",
+    "@typescript-eslint/parser": "^1.7.0",
+    "chai": "^4.2.0",
+    "conventional-changelog-cli": "^2.0.12",
+    "cross-env": "^5.2.0",
+    "eslint": "^5.16.0",
+    "mocha": "^6.1.4",
+    "rimraf": "^2.6.3",
+    "typemoq": "^2.1.0",
+    "typescript": "^3.4.4"
+  }
+}
