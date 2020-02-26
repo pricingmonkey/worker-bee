@@ -1,4 +1,4 @@
-# worker-bee
+# 🐝 worker-bee
 
 A simple fast job/task queue for Web Workers.
 
