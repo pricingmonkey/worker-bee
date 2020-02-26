@@ -2,25 +2,27 @@ import FastPriorityQueue from 'fastpriorityqueue';
 
 import { OptionalQueueOptions, QueueOptions } from './queueOptions';
 
-const cancelled = new Set();
-
 const defaultOptions = <M>(): OptionalQueueOptions<M> => ({
-  compare: (a: M, b: M) => a === b,
+  compare: (a: M, b: M) => a < b,
   shouldCancelMessage: () => false,
-  maxQueueSize: Number.MAX_VALUE
+  compactThreshold: Number.MAX_VALUE
 });
 
-const DEFAULT_QUEUE_SIZE = 1000;
-export const makeQueue = (setImmediate: (fn: () => any) => void) => <M>(_options: QueueOptions<M>) => {
-  const options = { ...defaultOptions(), ..._options };
+const internalArray = queue => (queue as any).array;
 
-  const maxQueueSize = options.maxQueueSize || DEFAULT_QUEUE_SIZE;
-  const queue: any = new FastPriorityQueue(options.compare);
+const DEFAULT_COMPACT_THRESHOLD = 1000;
+export const makeQueue = (setImmediate: (fn: () => any) => void) => <M>(_options: QueueOptions<M>) => {
+  const cancelled = new Set();
+
+  const options = { ...defaultOptions<M>(), ..._options };
+
+  const maxQueueSize = options.compactThreshold || DEFAULT_COMPACT_THRESHOLD;
+  const queue = new FastPriorityQueue(options.compare);
 
   let isProcessing = false;
   return (processMessage: (message: M) => any, cancelMessage: (message: M) => any) => (message: M) => {
     const _exec = () => {
-      if (queue.array.length - queue.size > maxQueueSize) {
+      if (internalArray(queue).length - queue.size > maxQueueSize) {
         queue.trim();
       }
       if (queue.isEmpty()) {
@@ -29,10 +31,12 @@ export const makeQueue = (setImmediate: (fn: () => any) => void) => <M>(_options
       }
       isProcessing = true;
       const message = queue.poll();
-      if (cancelled.has(options.getJobId(message))) {
-        cancelMessage(message);
-      } else {
-        processMessage(message);
+      if (message) {
+        if (cancelled.has(options.getJobId(message))) {
+          cancelMessage(message);
+        } else {
+          processMessage(message);
+        }
       }
       setImmediate(_exec);
     };

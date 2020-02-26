@@ -29,6 +29,7 @@
   ],
   "license": "BlueOak-1.0.0",
   "dependencies": {
+    "@types/node": "^13.7.5",
     "fastpriorityqueue": "^0.6.1"
   },
   "devDependencies": {

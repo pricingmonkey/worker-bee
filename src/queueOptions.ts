@@ -1,7 +1,7 @@
 export type OptionalQueueOptions<M> = {
   compare: (a: M, b: M) => boolean;
   shouldCancelMessage: (message: M) => boolean;
-  maxQueueSize: number;
+  compactThreshold: number;
 };
 
 export type QueueOptions<M> = {
