@@ -1,53 +1,65 @@
 import FastPriorityQueue from 'fastpriorityqueue';
 
-import { OptionalQueueOptions, QueueOptions } from './queueOptions';
+import { OptionalJobQueueOptions, JobQueueOptions } from './queueOptions';
 
-const defaultOptions = <M>(): OptionalQueueOptions<M> => ({
+const defaultOptions = <M>(): OptionalJobQueueOptions<M> => ({
   compare: (a: M, b: M) => a < b,
-  shouldCancelMessage: () => false,
+  isCancelMessage: () => false,
   compactThreshold: Number.MAX_VALUE
 });
 
+const DEFAULT_COMPACT_THRESHOLD = 1000;
 const internalArray = queue => (queue as any).array;
 
-const DEFAULT_COMPACT_THRESHOLD = 1000;
-export const makeQueue = (setImmediate: (fn: () => any) => void) => <M>(_options: QueueOptions<M>) => {
-  const cancelled = new Set();
+const shouldBeCancelled =
+  <M extends { timestamp: number }>(
+    cancelledContexts: Map<string, number>,
+    getContextId: (message: M) => string,
+    message: M
+  ): boolean => {
+    const contextId = getContextId(message);
+    const cancelContextTimestamp = cancelledContexts.get(contextId);
+    return !!(cancelContextTimestamp && cancelContextTimestamp > message.timestamp);
+  };
 
-  const options = { ...defaultOptions<M>(), ..._options };
+export const makeJobQueue = (setImmediate: (fn: () => any) => void) =>
+  <M extends { timestamp: number }>(_options: JobQueueOptions<M>) => {
+    const cancelledContexts = new Map<string, number>();
 
-  const maxQueueSize = options.compactThreshold || DEFAULT_COMPACT_THRESHOLD;
-  const queue = new FastPriorityQueue(options.compare);
+    const options = { ...defaultOptions<M>(), ..._options };
 
-  let isProcessing = false;
-  return (processMessage: (message: M) => any, cancelMessage: (message: M) => any) => (message: M) => {
-    const _exec = () => {
-      if (internalArray(queue).length - queue.size > maxQueueSize) {
-        queue.trim();
+    const maxQueueSize = options.compactThreshold || DEFAULT_COMPACT_THRESHOLD;
+    const queue = new FastPriorityQueue(options.compare);
+
+    let isProcessing = false;
+    return (processMessage: (message: M) => any, cancelMessage: (message: M) => any) => (message: M) => {
+      const _exec = () => {
+        if (internalArray(queue).length - queue.size > maxQueueSize) {
+          queue.trim();
+        }
+        if (queue.isEmpty()) {
+          isProcessing = false;
+          return;
+        }
+        isProcessing = true;
+        const message = queue.poll();
+        if (message) {
+          if (shouldBeCancelled(cancelledContexts, options.getContextId, message)) {
+            cancelMessage(message);
+          } else {
+            processMessage(message);
+          }
+        }
+        setImmediate(_exec);
+      };
+      if (options.isCancelMessage(message) && options.getContextId(message) !== undefined) {
+        cancelledContexts.set(options.getContextId(message), message.timestamp);
+      } else {
+        queue.add(message);
       }
-      if (queue.isEmpty()) {
-        isProcessing = false;
+      if (isProcessing) {
         return;
       }
-      isProcessing = true;
-      const message = queue.poll();
-      if (message) {
-        if (cancelled.has(options.getJobId(message))) {
-          cancelMessage(message);
-        } else {
-          processMessage(message);
-        }
-      }
-      setImmediate(_exec);
+      _exec();
     };
-    if (options.shouldCancelMessage(message) && options.getJobId(message) !== undefined) {
-      cancelled.add(options.getJobId(message));
-    } else {
-      queue.add(message);
-    }
-    if (isProcessing) {
-      return;
-    }
-    _exec();
   };
-};
