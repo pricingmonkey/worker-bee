@@ -8,6 +8,8 @@ This library implements a priority based task queuing with cancellation for Java
 
 Primarily designed for use in Web Workers, but written flexibly to allow use in other contexts (including NodeJS).
 
+Best served with: https://github.com/webpack-contrib/worker-loader
+
 ## Usage
 
 Inside Web Worker:
