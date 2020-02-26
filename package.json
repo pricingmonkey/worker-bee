@@ -29,10 +29,10 @@
   ],
   "license": "BlueOak-1.0.0",
   "dependencies": {
-    "@types/node": "^13.7.5",
     "fastpriorityqueue": "^0.6.1"
   },
   "devDependencies": {
+    "@types/node": "^13.7.5",
     "@babel/cli": "^7.4.3",
     "@babel/core": "^7.4.3",
     "@babel/plugin-proposal-class-properties": "^7.4.0",
