@@ -1,5 +1,5 @@
 {
-  "name": "worker-bee",
+  "name": "@pricingmonkey/worker-bee",
   "version": "1.0.0",
   "description": "A simple fast job/task queue for WebWorkers",
   "files": [
