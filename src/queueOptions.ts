@@ -1,9 +1,9 @@
-export type OptionalJobQueueOptions<M> = {
-  compare: (a: M, b: M) => boolean;
-  isCancelMessage: (message: M) => boolean;
+export type OptionalJobQueueOptions<ProcessableMessage, CancelMessage> = {
+  compare: (a: ProcessableMessage, b: ProcessableMessage) => boolean;
+  isCancelMessage: (message: ProcessableMessage | CancelMessage) => message is CancelMessage;
   compactThreshold: number;
 };
 
-export type JobQueueOptions<M> = {
-  getContextId: (message: M) => string;
-} & Partial<OptionalJobQueueOptions<M>>;
+export type JobQueueOptions<ProcessableMessage, CancelMessage> = {
+  getContextId: (message: ProcessableMessage | CancelMessage) => string;
+} & Partial<OptionalJobQueueOptions<ProcessableMessage, CancelMessage>>;

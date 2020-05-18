@@ -2,9 +2,10 @@ import FastPriorityQueue from 'fastpriorityqueue';
 
 import { OptionalJobQueueOptions, JobQueueOptions } from './queueOptions';
 
-const defaultOptions = <M>(): OptionalJobQueueOptions<M> => ({
-  compare: (a: M, b: M) => a < b,
-  isCancelMessage: () => false,
+const defaultOptions = <ProcessableMessage, CancelMessage>(): OptionalJobQueueOptions<ProcessableMessage, CancelMessage> => ({
+  compare: (a: ProcessableMessage, b: ProcessableMessage) => a < b,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  isCancelMessage: (message: ProcessableMessage | CancelMessage): message is CancelMessage => false,
   compactThreshold: Number.MAX_VALUE
 });
 
@@ -12,10 +13,10 @@ const DEFAULT_COMPACT_THRESHOLD = 1000;
 const internalArray = queue => (queue as any).array;
 
 const shouldBeCancelled =
-  <M extends { timestamp: number }>(
+  <ProcessableMessage extends { timestamp: number }>(
     cancelledContexts: Map<string, number>,
-    getContextId: (message: M) => string,
-    message: M
+    getContextId: (message: ProcessableMessage) => string,
+    message: ProcessableMessage
   ): boolean => {
     const contextId = getContextId(message);
     const cancelContextTimestamp = cancelledContexts.get(contextId);
@@ -23,16 +24,17 @@ const shouldBeCancelled =
   };
 
 export const makeJobQueue = (setImmediate: (fn: () => any) => void) =>
-  <M extends { timestamp: number }>(_options: JobQueueOptions<M>) => {
+  <ProcessableMessage extends { timestamp: number }, CancelMessage extends { timestamp: number }>(_options: JobQueueOptions<ProcessableMessage, CancelMessage>) => {
+    type Message = ProcessableMessage | CancelMessage;
     const cancelledContexts = new Map<string, number>();
 
-    const options = { ...defaultOptions<M>(), ..._options };
+    const options = { ...defaultOptions<ProcessableMessage, CancelMessage>(), ..._options };
 
     const maxQueueSize = options.compactThreshold || DEFAULT_COMPACT_THRESHOLD;
     const queue = new FastPriorityQueue(options.compare);
 
     let isProcessing = false;
-    return (processMessage: (message: M) => any, cancelMessage: (message: M) => any) => (message: M) => {
+    return (processMessage: (message: ProcessableMessage) => any, cancelMessage: (message: ProcessableMessage) => any) => (message: Message) => {
       const _exec = () => {
         if (internalArray(queue).length - queue.size > maxQueueSize) {
           queue.trim();
@@ -52,8 +54,12 @@ export const makeJobQueue = (setImmediate: (fn: () => any) => void) =>
         }
         setImmediate(_exec);
       };
-      if (options.isCancelMessage(message) && options.getContextId(message) !== undefined) {
-        cancelledContexts.set(options.getContextId(message), message.timestamp);
+      if (options.isCancelMessage(message)) {
+        if (options.getContextId(message) !== undefined) {
+          cancelledContexts.set(options.getContextId(message), message.timestamp);
+        } else {
+          console.debug('ignoring cancel message with `undefined` contextId: ', JSON.stringify(message));
+        }
       } else {
         queue.add(message);
       }
