@@ -51,5 +51,6 @@
     "rimraf": "^4.3.1",
     "typemoq": "^2.1.0",
     "typescript": "^3.9.2"
-  }
+  },
+  "packageManager": "yarn@4.5.1"
 }
